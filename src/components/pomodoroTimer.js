@@ -11,20 +11,39 @@ const render = {
     CYCLES: 3
 };
 
+const state = {
+    WORK: 0,
+    SHORT: 1,
+    LONG: 2
+}
+
 function PomodoroTimer() {
     const [workTime, setWorkTime] = useState(0);
     const [shortBreak, setShortBreak] = useState(0);
     const [longBreak, setLongBreak] = useState(0);
     const [numCycles, setNumCycles] = useState(0);
+    const [whichState, setState] = useState();
     const [whichRender, setRender] = useState();
+    const [intervalId, setIntervalId] = useState(undefined);
 
     useEffect(() => {
-        setWorkTime(1500);
-        setShortBreak(300);
-        setLongBreak(600);
-        setNumCycles(4);
+        setWorkTime(10);
+        setShortBreak(3);
+        setLongBreak(5);
+        setNumCycles(2);
+        setState(state.WORK);
         setRender(render.WORK);
     }, []);
+
+    useEffect(() => {
+        if (workTime == 0 || shortBreak == 0 || longBreak == 0) {
+            changeState();
+        }
+    }, [workTime, shortBreak, longBreak]);
+
+    useEffect(() => {
+        if (whichState != undefined) startTimer();
+    }, [whichState]);
 
     const fnRenderWork = () => setRender(render.WORK);
     const fnRenderShort = () => setRender(render.SHORT);
@@ -65,6 +84,56 @@ function PomodoroTimer() {
         }
     }
 
+    const startTimer = function() {
+        if (intervalId !== undefined) {
+            return;
+        }
+        const decrementTimer = function() {
+            switch(whichState) {
+                case(state.WORK):
+                    setWorkTime((oldTime) => oldTime - 1);
+                    break;
+                case(state.SHORT):
+                    setShortBreak((oldTime) => oldTime - 1);
+                    break;
+                case(state.LONG):
+                    setLongBreak((oldTime) => oldTime - 1);
+                    break;
+            } 
+        }
+
+        setIntervalId(setInterval(decrementTimer, 1000));
+    }
+
+    const stopTimer = function() {
+        clearInterval(intervalId);
+        setIntervalId(undefined);
+    }
+
+    const changeState = async function() {
+        await stopTimer();
+        switch(whichState) {
+            case(state.WORK):
+                setWorkTime(10);
+                if (numCycles == 1) {
+                    setNumCycles(2);
+                    setState(state.LONG);
+                } else {
+                    setNumCycles((oldNum) => oldNum - 1);
+                    setState(state.SHORT);
+                }
+                break;
+            case(state.SHORT):
+                setShortBreak(3);
+                setState(state.WORK);
+                break;
+            case(state.LONG):
+                setLongBreak(5);
+                setState(state.WORK);
+                break;
+        }
+    }
+
     let Display;
     switch(whichRender) {
         case (render.WORK):
@@ -93,8 +162,8 @@ function PomodoroTimer() {
             </div>
                 {Display}
             <div>
-                <Button variant="dark">Start</Button>
-                <Button variant="dark">Stop</Button>
+                <Button variant="dark" onClick={startTimer}>Start</Button>
+                <Button variant="dark" onClick={stopTimer}>Stop</Button>
                 <Button variant="dark">Reset</Button>
                 <Button variant="dark" onClick={add}>+</Button>
                 <Button variant="dark" onClick={minus}>-</Button>            
